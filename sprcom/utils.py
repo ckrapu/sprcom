@@ -8,6 +8,7 @@ from scipy.sparse  import csr_matrix
 from theano.sparse import as_sparse_variable
 from theano.sparse import dot as t_sparse_dot
 from theano        import shared
+from seaborn       import heatmap
 
 def expand_packed(n,packed):
     """
@@ -386,7 +387,7 @@ def coefficient_plot(samples,y_labels,figsize =(4,16)):
     is_sig = np.abs(means) > (2*stdevs)
 
     fig = plt.figure(figsize = figsize)
-    ax = sns.heatmap(means,annot=is_sig)
+    ax = heatmap(means,annot=is_sig)
     locs,labels = plt.yticks()
     plt.yticks(locs,y_labels,rotation = 45)
 
