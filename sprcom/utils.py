@@ -362,7 +362,8 @@ def print_species(mean_phi, species_index,name_col='scientificname',
 def coefficient_plot(samples,y_labels,figsize =(4,16)):
     """
     Generates a plot showing the relation between communities and regression
-    coefficients.
+    coefficients. Asterisks / stars indicate variables that are significant
+    at the 2 sigma level.
 
     Parameters
     ----------
@@ -382,14 +383,17 @@ def coefficient_plot(samples,y_labels,figsize =(4,16)):
 
     """
 
+    fig = plt.figure(figsize = figsize)
+
     stdevs = samples.std(axis = 0)
     means  = samples.mean(axis = 0)
     is_sig = np.abs(means) > (2*stdevs)
-
-    fig = plt.figure(figsize = figsize)
-    ax = heatmap(means,annot=is_sig)
-    locs,labels = plt.yticks()
-    plt.yticks(locs,y_labels,rotation = 45)
+    C = samples.shape[1]
+    sns.heatmap(samples.mean(axis=0),square=True,xticklabels=X.columns,cmap='RdBu_r',
+               linewidth=0.4,linecolor='k')
+    xs,ys = np.where(~is_sig.T)
+    plt.scatter(xs+0.5,ys+0.5,marker='*',color='k',s=70)
+    plt.ylim(-0.5,C+0.5); plt.ylabel('Community')
 
     return fig,ax
 
