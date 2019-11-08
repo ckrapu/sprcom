@@ -1,8 +1,5 @@
 README.md
 setup.py
-sprcom/__init__.py
-sprcom/model.py
-sprcom/utils.py
 sprcom.egg-info/PKG-INFO
 sprcom.egg-info/SOURCES.txt
 sprcom.egg-info/dependency_links.txt
