@@ -12,8 +12,8 @@ with model:
   trace = pm.sample()
 ...
 ```
-
-
+## Installation
+You can install this package using pip: `pip install sprcom`. It requires several dependencies including PyMC3 and Seaborn.
 
 We've included documentation to help you get up and running. Check out the `florabank1-tutorial` notebook for more details!
 
