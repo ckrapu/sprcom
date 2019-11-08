@@ -1,5 +1,10 @@
 # SpRCom
 
+
+<p align="center">
+<img src="data/animation.gif">
+</p>
+
 `sprcom` stands for **Sp**atial **R**egression of **Com**munities and is a statistical  package designed to streamline the interpretation and modeling of very high dimensional binary and count-valued data. The underlying model assumes a low-dimensional latent structure via communities or clusters that leads to a parsimonious. `sprcom` can also account for the dependence of these communities on covariates! A number of utility and plotting functions are included to help visualize your results. `sprcom` is a wrapper for a [PyMC3](https://docs.pymc.io/) model and you can use any PyMC3 estimation method with it including Hamiltonian Monte Carlo and ADVI.
 
 ```python
@@ -11,7 +16,7 @@ with model:
 ...
 ```
 
-<img src="data/animation.gif" width="400">
+
 
 We've included documentation to help you get up and running. Check out the `florabank1-tutorial` notebook for more details!
 
