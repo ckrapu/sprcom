@@ -6,5 +6,5 @@ setup(name='sprcom',
       description='Bayesian spatial regression of communities',
       author='Christopher Krapu',
       author_email='ckrapu@gmail.com',
-      packages=find_packages()
+      packages=['model','utils']
      )
