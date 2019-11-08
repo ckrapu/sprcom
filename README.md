@@ -11,8 +11,7 @@ with model:
 ...
 ```
 
-
-![Simulation demo](data/animation.gif)
+<img src="data/animation.gif" width="400">
 
 We've included documentation to help you get up and running. Check out the `florabank1-tutorial` notebook for more details!
 
