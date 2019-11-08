@@ -1,0 +1,5 @@
+build/
+dist/
+scrcom.egg-info/
+__pycache__
+.pypirc
