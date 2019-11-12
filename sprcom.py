@@ -634,6 +634,6 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
                 response = pm.Bernoulli('response', p=p, observed=Y)
 
             elif response.lower() == 'poisson':
-                rate     = pm.math.exp(mu) * poisson_base
-                response = pm.Poisson('response',mu=rate)
+                rate     = pm.math.exp(mu) * poisson_base[:,np.newaxis]
+                response = pm.Poisson('response',mu=rate, observed=Y)
         return model
