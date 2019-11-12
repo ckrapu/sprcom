@@ -538,7 +538,7 @@ def simulate_community_regression(N=625,S=500,C=5,P=5,seed=827,
     data['Y']   = np.random.binomial(1,data['p'])
     return data
 
-    def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',poisson_base='None'):
+def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',poisson_base='None'):
         """
         Generates a PyMC3 model for fitting the spatial community regression model.
 
