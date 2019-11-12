@@ -538,7 +538,8 @@ def simulate_community_regression(N=625,S=500,C=5,P=5,seed=827,
     data['Y']   = np.random.binomial(1,data['p'])
     return data
 
-def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',poisson_base='None'):
+def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',poisson_base='None',
+                                 per_response_intercept=False):
         """
         Generates a PyMC3 model for fitting the spatial community regression model.
 
@@ -569,6 +570,10 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
             multiplied by the base number of people or person-hours per site; this 
             parameter represents the latter quantity. This array should have shape
             [n_sites].
+        per_response_intercept : bool
+            Determines whether or not a per-response intercept should be added. This can
+            be helpful if the responses exhibit dramatically different rates of occurrence
+            or presence.
 
         Returns
         -------
@@ -626,8 +631,15 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
             beta      = pm.Deterministic('beta', beta_raw*(beta_var**0.5))
             theta     = pm.Deterministic('theta',pm.math.dot(X, beta.T) + community_effect)
 
+            
+
+            if per_response_intercept:
+                response_effect = pm.Normal('response_effect',sd=100,shape=[1,S])
+            else:
+                response_effect = 0
+
             phi = pm.HalfNormal('phi', shape=[C,S])
-            mu  = pm.math.dot(theta, phi) + intercept
+            mu  = pm.math.dot(theta, phi) + intercept + response_effect
 
             if response.lower() == 'bernoulli':
                 p        = pm.math.sigmoid(mu)
