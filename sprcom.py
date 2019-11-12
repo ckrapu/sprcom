@@ -538,7 +538,7 @@ def simulate_community_regression(N=625,S=500,C=5,P=5,seed=827,
     data['Y']   = np.random.binomial(1,data['p'])
     return data
 
-    def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli'):
+    def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',poisson_base='None'):
         """
         Generates a PyMC3 model for fitting the spatial community regression model.
 
@@ -562,6 +562,13 @@ def simulate_community_regression(N=625,S=500,C=5,P=5,seed=827,
             Distribution appropriate for the response contained in <Y>.
             Currently supported options are 'bernoulli' for binary data and
             'poisson' for count-valued data
+        poisson_base : 1D Numpy array
+            Used only if response is 'poisson'. This is the base exposure value used
+            in calculating the Poisson rate. For example, in epidemiological studies,
+            the per-site Poisson rate might be expressed as the incidence fraction
+            multiplied by the base number of people or person-hours per site; this 
+            parameter represents the latter quantity. This array should have shape
+            [n_sites].
 
         Returns
         -------
@@ -627,6 +634,6 @@ def simulate_community_regression(N=625,S=500,C=5,P=5,seed=827,
                 response = pm.Bernoulli('response', p=p, observed=Y)
 
             elif response.lower() == 'poisson':
-                rate     = pm.math.exp(mu)
+                rate     = pm.math.exp(mu) * poisson_base
                 response = pm.Poisson('response',mu=rate)
         return model
