@@ -539,7 +539,7 @@ def simulate_community_regression(N=625,S=500,C=5,P=5,seed=827,
     return data
 
 def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',poisson_base='none',
-                                 per_response_intercept=False):
+                                 per_response_intercept=False,response_fixed=False):
         """
         Generates a PyMC3 model for fitting the spatial community regression model.
 
@@ -574,6 +574,10 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
             Determines whether or not a per-response intercept should be added. This can
             be helpful if the responses exhibit dramatically different rates of occurrence
             or presence.
+        response_fixed : bool
+            If per_response_intercept is used, this determines whether it should
+            be treated as a random variable or fixed from the matrix of response
+            values.
 
         Returns
         -------
@@ -631,10 +635,13 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
 
 
 
-            if per_response_intercept:
+            if per_response_intercept:            
                 re_testval = np.log(Y.mean(axis=0))[np.newaxis,:]
-                response_effect = pm.Normal('response_effect',sd=10,shape=[1,S],
-                                            testval=re_testval)
+                if response_fixed:
+                    response_effect = re_testval
+                else:
+                    response_effect = pm.Normal('response_effect',sd=10,shape=[1,S],
+                                                testval=re_testval)
                 intercept = 0
             else:
                 response_effect = 0
