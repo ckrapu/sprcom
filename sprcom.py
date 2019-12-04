@@ -632,7 +632,9 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
 
 
             if per_response_intercept:
-                response_effect = pm.Normal('response_effect',sd=10,shape=[1,S])
+                re_testval = np.log(Y.mean(axis=0))[np.newaxis,:]
+                response_effect = pm.Normal('response_effect',sd=10,shape=[1,S],
+                                            testval=re_testval)
                 intercept = 0
             else:
                 response_effect = 0
