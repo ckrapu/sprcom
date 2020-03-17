@@ -539,10 +539,7 @@ def simulate_community_regression(N=625,S=500,C=5,P=5,seed=827,
     return data
 
 def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',poisson_base='none',
-                                 per_response_intercept=False,response_fixed=False,
-                                 save_mu=False,phi_prior='half-normal',
-                                 phi_scale=1,A_scale_param=1.0,
-                                 per_site_effect=False):
+                                 per_response_intercept=False,response_fixed=False):
         """
         Generates a PyMC3 model for fitting the spatial community regression model.
 
@@ -557,16 +554,15 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
         W : 2D Numpy array
             Binary adjacency matrix
         community_effect_setting : string
-            Type of model to implement. Choices are 'mvcar', 'car', 'nonspatial'
-            and 'none'. 'nonspatial' assumes that each community gets a per-
-            site random effect. 'mvcar' implements the linear model of
-            coregionalization to obtain correlated spatial processes underlying
-            the community scores. 'car' treats these spatial processes as
-            independent. 'none' removes them entirely.
+            Type of model to implement. Choices are 'mvcar', 'car', and 'none'.
+            'mvcar' implements the linear model of coregionalization to obtain
+            correlated spatial processes underlying the community scores. 'car'
+            treats these spatial processes as independent. 'none' removes them
+            entirely.
         response : str
             Distribution appropriate for the response contained in <Y>.
             Currently supported options are 'bernoulli' for binary data and
-            'poisson' or 'nb' (negative binomial) for count-valued data
+            'poisson' for count-valued data
         poisson_base : 1D Numpy array
             Used only if response is 'poisson'. This is the base exposure value used
             in calculating the Poisson rate. For example, in epidemiological studies,
@@ -582,19 +578,7 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
             If per_response_intercept is used, this determines whether it should
             be treated as a random variable or fixed from the matrix of response
             values.
-        save_mu : bool
-            Determines whether or not the linear predictor mu is saved as a
-            variable in PyMC3.
-        phi_prior : string
-            Choice of prior to use for entries of phi. Current supported options
-            are 'half-normal' and 'exponential'.
-        phi_scale : float
-            Scale hyperparameter for phi.
-        A_scale_param: float
-            Parameter controlling the Half-Cauchy prior on the diagonal
-            elements of the coregionalization matrix.
-        per_site_effect : bool
-            Determines whether or not a per-site random effect is added.
+
         Returns
         -------
         model : PyMC3 Model object
@@ -623,14 +607,10 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
             if setting.lower() == 'none':
                 community_effect = 0
 
-            if setting.lower() == 'nonspatial':
-                pe_var           = pm.InverseGamma('pe_var', alpha = 0.1, beta = 0.1, shape = C)
-                community_effect = pm.Normal('community_effect',shape=[N,C],sd=pe_var**0.5)
-
             # Uncorrelated conditional autoregressions for each community
             elif setting.lower() == 'car':
                 rho             = pm.Uniform('rho', shape = C)
-                pe_var          = pm.InverseGamma('pe_var', alpha = 0.1, beta = 0.1, shape = C)
+                pe_var          = pm.InverseGamma('pe_var', alpha = 0.01, beta = 0.01, shape = C)
                 univariate_CARs = [CAR('car_{0}'.format(c),alpha = rho[c],W=W,tau=pe_var[c,],shape = N,lam=lam) for c in range(C)]
                 community_effect= pm.Deterministic('community_effect',pm.math.stack(univariate_CARs,axis = 1))
 
@@ -641,45 +621,34 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
                 univariate_CARs = [CAR('car_{0}'.format(c),alpha = rho[c],W=W,tau=1,shape = N,lam=lam) for c in range(C)]
                 raw_plot_effect = pm.math.stack(univariate_CARs,axis = 1)
                 packed_A        = pm.LKJCholeskyCov('packed_A', n=C,eta=1,
-                 sd_dist=pm.HalfCauchy.dist(A_scale_param))
+                 sd_dist=pm.HalfCauchy.dist(2.5))
                 A                = pm.Deterministic('A',pm.expand_packed_triangular(C,packed_A))
                 community_effect = pm.Deterministic('community_effect',pm.math.dot(raw_plot_effect,A))
 
 
             # Regression coefficients linking covariaties
             # to community scores
-            beta_var  = pm.InverseGamma('beta_var', alpha=0.1, beta=0.1)
+            beta_var  = pm.InverseGamma('beta_var', alpha=0.01, beta=0.01)
             beta_raw  = pm.Normal('beta_raw',shape = [C,P])
             beta      = pm.Deterministic('beta', beta_raw*(beta_var**0.5))
             theta     = pm.Deterministic('theta',pm.math.dot(X, beta.T) + community_effect)
 
-            if per_response_intercept:
+
+
+            if per_response_intercept:            
                 re_testval = np.log(Y.mean(axis=0))[np.newaxis,:]
                 if response_fixed:
-                    response_effect = pm.Deterministic('response_effect',tt.as_tensor_variable(re_testval))
+                    response_effect = re_testval
                 else:
                     response_effect = pm.Normal('response_effect',sd=10,shape=[1,S],
                                                 testval=re_testval)
+                intercept = 0
             else:
                 response_effect = 0
+                intercept = pm.Normal('intercept', sd = 10)
 
-            intercept = pm.Normal('intercept', sd = 10)
-
-            if phi_prior == 'half-normal':
-                phi = pm.HalfNormal('phi', sd=1/phi_scale,shape=[C,S])
-            elif phi_prior=='exponential':
-                phi = pm.Exponential('phi',lam=1/phi_scale,shape=[C,S])
-
-
+            phi = pm.HalfNormal('phi', shape=[C,S])
             mu  = pm.math.dot(theta, phi) + intercept + response_effect
-            if per_site_effect:
-                se_var      = pm.InverseGamma('se_var',alpha=0.1,beta=0.1)
-                beta_se     = pm.Normal('beta_se',sd=se_var**0.5,shape=[P,1])
-                site_effect = pm.Deterministic('site_effect',pm.math.dot(X,beta_se))
-                mu += site_effect
-
-            if save_mu:
-                mu = pm.Deterministic('mu',mu)
 
             if response.lower() == 'bernoulli':
                 p        = pm.math.sigmoid(mu)
@@ -690,9 +659,6 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
                     rate     = pm.math.exp(mu)
                 else:
                     rate     = pm.math.exp(mu) * poisson_base[:,np.newaxis]
-                response = pm.Poisson('response',mu=rate, observed=Y)
 
-            elif response.lower() == 'nb':
-                inv_alpha = pm.Exponential('inv_alpha',lam=5,shape = S)
-                response = pm.NegativeBinomial('response',mu=pm.math.exp(mu),alpha=inv_alpha**-1,observed=Y)
+                response = pm.Poisson('response',mu=rate, observed=Y)
         return model

@@ -7,7 +7,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name='sprcom',
-      version='0.1',
+      version='0.2',
       description='Bayesian spatial regression of communities',
       author='Christopher Krapu',
       author_email='ckrapu@gmail.com',

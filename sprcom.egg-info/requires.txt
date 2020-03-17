@@ -1,0 +1,6 @@
+scipy
+numpy
+pymc3
+theano
+matplotlib
+seaborn

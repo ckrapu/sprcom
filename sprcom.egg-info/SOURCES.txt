@@ -1,0 +1,8 @@
+README.md
+setup.cfg
+setup.py
+sprcom.egg-info/PKG-INFO
+sprcom.egg-info/SOURCES.txt
+sprcom.egg-info/dependency_links.txt
+sprcom.egg-info/requires.txt
+sprcom.egg-info/top_level.txt
