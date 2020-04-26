@@ -683,8 +683,8 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
                 beta      = pm.Deterministic('beta', beta_raw*(beta_var**0.5))
                 theta     = pm.Deterministic('theta',pm.math.dot(X, beta.T) + community_effect)
             else:
-                theta = = pm.Deterministic('theta' + community_effect)
-                
+                theta = pm.Deterministic('theta' + community_effect)
+
             if per_response_intercept:
                 re_testval = np.log(Y.mean(axis=0))[np.newaxis,:]
                 if response_fixed:
