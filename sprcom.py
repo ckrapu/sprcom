@@ -610,11 +610,11 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
         # Extract the number of sampling units (N), covariates (P) and species (S)
 
         if X is not None:
-            N,P = X.shape
+            _,P = X.shape
 
             # For fastest GPU performance, these variables must be cast
             X = X.astype(np.float32)
-        _,S = Y.shape
+        N, S = Y.shape
         Y = Y.astype(np.float32)
         W = W.astype(np.float32)
 
@@ -626,6 +626,7 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
         DWD = np.matmul(np.matmul(Dinv_sqrt, W), Dinv_sqrt)
         lam = eigvalsh(DWD)
         with pm.Model() as model:
+
             # Removes the community spatial effect
             if setting.lower() == 'none':
                 community_effect = 0
@@ -683,7 +684,7 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
                 beta      = pm.Deterministic('beta', beta_raw*(beta_var**0.5))
                 theta     = pm.Deterministic('theta',pm.math.dot(X, beta.T) + community_effect)
             else:
-                theta = pm.Deterministic('theta' + community_effect)
+                theta = pm.Deterministic('theta', community_effect)
 
             if per_response_intercept:
                 re_testval = np.log(Y.mean(axis=0))[np.newaxis,:]
