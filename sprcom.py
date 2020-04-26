@@ -542,14 +542,16 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
                                  per_response_intercept=False,response_fixed=False,
                                  save_mu=False,phi_prior='half-normal',
                                  phi_scale=1,A_scale_param=1.0,
-                                 per_site_effect=False):
+                                 per_site_effect=False,locs=None,max_distance=None,
+                                 n_inducing=50):
         """
         Generates a PyMC3 model for fitting the spatial community regression model.
 
         Arguments
         ---------
         X : 2D Numpy array
-            Covariates with shape [n_sites, n_covariates]
+            Covariates with shape [n_sites, n_covariates]. Pass a value of None to
+            avoid using covariates in this model.
         Y : 2D Numpy array
             Response variable with shape [n_sites, n_species]
         C : int
@@ -601,13 +603,18 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
 
         """
 
-        # Extract the number of sampling units (N), covariates (P) and species (S)
-        N,P = X.shape
-        _,S = Y.shape
+        
+        
 
-        # For fastest GPU performance, these variables must be cast
         # to 32-bit float representation
-        X = X.astype(np.float32)
+        # Extract the number of sampling units (N), covariates (P) and species (S)
+
+        if X is not None:
+            N,P = X.shape
+
+            # For fastest GPU performance, these variables must be cast
+            X = X.astype(np.float32)
+        _,S = Y.shape
         Y = Y.astype(np.float32)
         W = W.astype(np.float32)
 
@@ -644,15 +651,40 @@ def spatial_community_regression(X,Y,C,W,setting = 'mvcar',response='bernoulli',
                  sd_dist=pm.HalfCauchy.dist(A_scale_param))
                 A                = pm.Deterministic('A',pm.expand_packed_triangular(C,packed_A))
                 community_effect = pm.Deterministic('community_effect',pm.math.dot(raw_plot_effect,A))
+            
+            elif setting.lower() == 'sparse_gp':
+                if locs is None:
+                    raise ValueError('If using the sparse GP setting, please provide spatial coordinates in "locs".')
+              
+                ls = pm.Uniform('ls', upper=max_distance, shape=C)
+                Xu = pm.gp.util.kmeans_inducing_points(n_inducing, locs)
+                covs = []
+                gps  = []
+
+                for c in range(C):
+                    covs.append(pm.gp.cov.Matern52(2,ls[c]))
+                    gp = pm.gp.MarginalSparse(cov_func=covs[c],approx='FITC')
+                    gp_ll = gp.marginal_likelihood('gp_ll_{0}'.format(c), X=locs,Xu=Xu,y=None,noise=0.1)
+                    gps.append(gp_ll)
+                raw_plot_effect = pm.math.stack(gps,axis=1)
+                packed_A        = pm.LKJCholeskyCov('packed_A', n=C,eta=1,
+                 sd_dist=pm.HalfCauchy.dist(A_scale_param))
+                A                = pm.Deterministic('A',pm.expand_packed_triangular(C,packed_A))
+                community_effect = pm.Deterministic('community_effect',pm.math.dot(raw_plot_effect,A))
+                    
 
 
+                    
             # Regression coefficients linking covariaties
             # to community scores
-            beta_var  = pm.InverseGamma('beta_var', alpha=0.1, beta=0.1)
-            beta_raw  = pm.Normal('beta_raw',shape = [C,P])
-            beta      = pm.Deterministic('beta', beta_raw*(beta_var**0.5))
-            theta     = pm.Deterministic('theta',pm.math.dot(X, beta.T) + community_effect)
-
+            if X is not None:
+                beta_var  = pm.InverseGamma('beta_var', alpha=0.1, beta=0.1)
+                beta_raw  = pm.Normal('beta_raw',shape = [C,P])
+                beta      = pm.Deterministic('beta', beta_raw*(beta_var**0.5))
+                theta     = pm.Deterministic('theta',pm.math.dot(X, beta.T) + community_effect)
+            else:
+                theta = = pm.Deterministic('theta' + community_effect)
+                
             if per_response_intercept:
                 re_testval = np.log(Y.mean(axis=0))[np.newaxis,:]
                 if response_fixed:
